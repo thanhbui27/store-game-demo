@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#65d5d3" />
+  <title>Flappy Bird — Bay thật xa!</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #19384a;
+      --cream: #fff8dc;
+      --orange: #ff8b3d;
+      --orange-dark: #d85928;
+      --mint: #50c9a2;
+      --shadow: rgba(25, 56, 74, .22);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      overflow: hidden;
+      color: var(--ink);
+      font-family: "Trebuchet MS", "Arial Rounded MT Bold", Arial, sans-serif;
+      background:
+        radial-gradient(circle at 18% 14%, rgba(255,255,255,.62) 0 6%, transparent 6.5%),
+        radial-gradient(circle at 85% 80%, rgba(255,244,167,.5) 0 10%, transparent 10.5%),
+        linear-gradient(145deg, #9ff4e7, #51c9d4 60%, #37a7c5);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .page {
+      width: min(100%, 410px);
+      text-align: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0 4px 10px;
+      color: white;
+      text-shadow: 0 3px 0 rgba(25,56,74,.2);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(24px, 7vw, 34px);
+      letter-spacing: -1.5px;
+    }
+
+    .sound {
+      width: 42px;
+      height: 42px;
+      border: 2px solid rgba(255,255,255,.82);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      color: white;
+      font-size: 19px;
+      background: rgba(25,56,74,.18);
+      box-shadow: 0 4px 0 rgba(25,56,74,.14);
+    }
+
+    .game {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 390 / 640;
+      max-height: calc(100vh - 92px);
+      border: 5px solid #fff7da;
+      border-radius: 28px;
+      overflow: hidden;
+      background: #79dded;
+      box-shadow: 0 22px 48px rgba(13,72,91,.3), inset 0 0 0 2px rgba(25,56,74,.12);
+      touch-action: manipulation;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .hud {
+      position: absolute;
+      inset: 16px 16px auto;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .pill {
+      min-width: 76px;
+      padding: 7px 12px;
+      border: 2px solid rgba(255,255,255,.88);
+      border-radius: 999px;
+      color: white;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+      text-transform: uppercase;
+      text-shadow: 0 2px 0 rgba(25,56,74,.26);
+      background: rgba(25,56,74,.2);
+      backdrop-filter: blur(4px);
+    }
+
+    .pill strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+    }
+
+    .panel {
+      position: absolute;
+      left: 50%;
+      top: 48%;
+      width: min(82%, 290px);
+      transform: translate(-50%, -50%);
+      padding: 24px 22px 20px;
+      border: 4px solid var(--ink);
+      border-radius: 24px;
+      background: var(--cream);
+      box-shadow: 0 9px 0 rgba(25,56,74,.24);
+      transition: opacity .18s, transform .18s;
+    }
+
+    .panel.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -46%) scale(.96);
+    }
+
+    .eyebrow {
+      margin: 0 0 5px;
+      color: var(--orange-dark);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+
+    .panel p {
+      margin: 12px 0 18px;
+      font-size: 14px;
+      line-height: 1.45;
+      color: #476373;
+    }
+
+    .result {
+      display: none;
+      justify-content: center;
+      gap: 24px;
+      margin: 14px 0 18px;
+    }
+
+    .result.show { display: flex; }
+
+    .result span {
+      display: block;
+      color: #78909d;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .result strong {
+      display: block;
+      font-size: 26px;
+    }
+
+    .play {
+      width: 100%;
+      border: 3px solid var(--ink);
+      border-radius: 14px;
+      padding: 12px 16px;
+      cursor: pointer;
+      color: white;
+      font: 900 17px/1 "Trebuchet MS", Arial, sans-serif;
+      letter-spacing: .4px;
+      background: var(--orange);
+      box-shadow: 0 6px 0 var(--orange-dark);
+    }
+
+    .play:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--orange-dark); }
+    button:focus-visible { outline: 4px solid #fff; outline-offset: 3px; }
+
+    .hint {
+      margin: 10px 0 0;
+      color: rgba(255,255,255,.9);
+      font-size: 12px;
+      font-weight: 700;
+      text-shadow: 0 2px 0 rgba(25,56,74,.2);
+    }
+
+    @media (max-height: 720px) {
+      body { padding: 8px; }
+      .brand { margin-bottom: 5px; }
+      .brand h1 { font-size: 24px; }
+      .sound { width: 34px; height: 34px; }
+      .game { max-height: calc(100vh - 54px); width: auto; margin-inline: auto; }
+      .hint { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .panel { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="brand">
+      <h1>Flappy Bird</h1>
+      <button id="soundBtn" class="sound" aria-label="Tắt âm thanh" title="Bật/tắt âm thanh">♪</button>
+    </header>
+
+    <section id="game" class="game" aria-label="Trò chơi Flappy Bird">
+      <canvas id="canvas" width="780" height="1280"></canvas>
+
+      <div class="hud" aria-live="polite">
+        <div class="pill">Điểm<strong id="score">0</strong></div>
+        <div class="pill">Kỷ lục<strong id="best">0</strong></div>
+      </div>
+
+      <div id="panel" class="panel">
+        <p id="eyebrow" class="eyebrow">Sẵn sàng chưa?</p>
+        <h2 id="panelTitle">Bay thôi!</h2>
+        <p id="panelText">Nhấn để vỗ cánh và luồn qua những ống xanh.</p>
+        <div id="result" class="result">
+          <div><span>Điểm</span><strong id="finalScore">0</strong></div>
+          <div><span>Tốt nhất</span><strong id="finalBest">0</strong></div>
+        </div>
+        <button id="playBtn" class="play">BẮT ĐẦU</button>
+      </div>
+    </section>
+
+    <p class="hint">Nhấn Space · click chuột · chạm màn hình</p>
+  </main>
+
+  <script>
+    (() => {
+      const W = 390, H = 640, GROUND = 70;
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      const gameEl = document.getElementById('game');
+      const panel = document.getElementById('panel');
+      const playBtn = document.getElementById('playBtn');
+      const soundBtn = document.getElementById('soundBtn');
+      const scoreEl = document.getElementById('score');
+      const bestEl = document.getElementById('best');
+      const resultEl = document.getElementById('result');
+      const finalScoreEl = document.getElementById('finalScore');
+      const finalBestEl = document.getElementById('finalBest');
+      const eyebrowEl = document.getElementById('eyebrow');
+      const panelTitleEl = document.getElementById('panelTitle');
+      const panelTextEl = document.getElementById('panelText');
+
+      ctx.scale(2, 2);
+
+      let state = 'ready';
+      let frame = 0;
+      let score = 0;
+      let best = Number(localStorage.getItem('flappy-best') || 0);
+      let muted = false;
+      let pipes = [];
+      let lastTime = 0;
+      let accumulator = 0;
+      const bird = { x: 98, y: 278, vy: 0, rotation: 0 };
+      bestEl.textContent = best;
+
+      function reset() {
+        frame = 0;
+        score = 0;
+        pipes = [];
+        bird.y = 278;
+        bird.vy = 0;
+        bird.rotation = 0;
+        scoreEl.textContent = '0';
+      }
+
+      function start() {
+        reset();
+        state = 'playing';
+        panel.classList.add('hidden');
+        flap();
+      }
+
+      function flap() {
+        if (state === 'ready' || state === 'gameover') {
+          start();
+          return;
+        }
+        bird.vy = -6.25;
+        beep(620, .045, 'sine', .055);
+      }
+
+      function endGame() {
+        if (state !== 'playing') return;
+        state = 'gameover';
+        best = Math.max(best, score);
+        localStorage.setItem('flappy-best', best);
+        bestEl.textContent = best;
+        finalScoreEl.textContent = score;
+        finalBestEl.textContent = best;
+        eyebrowEl.textContent = score >= best && score > 0 ? 'Kỷ lục mới!' : 'Thử lại nhé!';
+        panelTitleEl.textContent = 'Hết game';
+        panelTextEl.textContent = score > 8 ? 'Chuyến bay đẹp đấy! Bạn còn có thể đi xa hơn.' : 'Bình tĩnh giữ nhịp, chú chim sẽ bay xa hơn.';
+        playBtn.textContent = 'CHƠI LẠI';
+        resultEl.classList.add('show');
+        panel.classList.remove('hidden');
+        beep(150, .18, 'sawtooth', .08);
+      }
+
+      function addPipe() {
+        const gap = Math.max(128, 158 - Math.min(score, 15) * 1.5);
+        const top = 105 + Math.random() * (H - GROUND - gap - 225);
+        pipes.push({ x: W + 35, top, gap, passed: false });
+      }
+
+      function update() {
+        frame++;
+        if (state !== 'playing') return;
+
+        bird.vy += .34;
+        bird.y += bird.vy;
+        bird.rotation = Math.max(-.42, Math.min(1.12, bird.vy * .085));
+
+        if (frame % 106 === 0) addPipe();
+        const speed = 2.65 + Math.min(score, 20) * .025;
+        pipes.forEach(p => {
+          p.x -= speed;
+          if (!p.passed && p.x + 58 < bird.x) {
+            p.passed = true;
+            score++;
+            scoreEl.textContent = score;
+            beep(900, .07, 'square', .045);
+          }
+        });
+        pipes = pipes.filter(p => p.x > -70);
+
+        const bx = bird.x, by = bird.y, r = 13;
+        for (const p of pipes) {
+          const withinX = bx + r > p.x && bx - r < p.x + 58;
+          if (withinX && (by - r < p.top || by + r > p.top + p.gap)) endGame();
+        }
+        if (bird.y + 15 >= H - GROUND || bird.y - 15 <= 0) endGame();
+      }
+
+      function roundedRect(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, r);
+      }
+
+      function drawCloud(x, y, scale = 1) {
+        ctx.fillStyle = 'rgba(255,255,255,.78)';
+        ctx.beginPath();
+        ctx.arc(x, y, 18 * scale, Math.PI, 0);
+        ctx.arc(x + 22 * scale, y - 8 * scale, 23 * scale, Math.PI, 0);
+        ctx.arc(x + 50 * scale, y, 17 * scale, Math.PI, 0);
+        ctx.lineTo(x + 50 * scale, y + 10 * scale);
+        ctx.lineTo(x, y + 10 * scale);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function drawBackground() {
+        const sky = ctx.createLinearGradient(0, 0, 0, H);
+        sky.addColorStop(0, '#67d7ee');
+        sky.addColorStop(.7, '#b9f0e7');
+        sky.addColorStop(1, '#e7f7cf');
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = 'rgba(255,244,161,.7)';
+        ctx.beginPath();
+        ctx.arc(318, 93, 38, 0, Math.PI * 2);
+        ctx.fill();
+
+        drawCloud(24 - (frame * .18) % 470, 125, .8);
+        drawCloud(245 - (frame * .1) % 520, 205, 1.05);
+        drawCloud(130 - (frame * .13) % 490, 62, .55);
+
+        ctx.fillStyle = '#86d6a7';
+        ctx.beginPath();
+        ctx.moveTo(0, H - 102);
+        for (let x = 0; x <= W + 50; x += 48) {
+          ctx.quadraticCurveTo(x + 24, H - 155 - (x % 96) * .25, x + 48, H - 102);
+        }
+        ctx.lineTo(W, H - GROUND);
+        ctx.lineTo(0, H - GROUND);
+        ctx.fill();
+      }
+
+      function drawPipe(p) {
+        const pipeW = 58;
+        const capH = 24;
+        const grad = ctx.createLinearGradient(p.x, 0, p.x + pipeW, 0);
+        grad.addColorStop(0, '#79e05b');
+        grad.addColorStop(.42, '#43bd4b');
+        grad.addColorStop(1, '#1f873c');
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = '#185f39';
+        ctx.lineWidth = 3;
+
+        roundedRect(p.x + 6, -8, pipeW - 12, p.top - capH + 10, 5);
+        ctx.fill(); ctx.stroke();
+        roundedRect(p.x, p.top - capH, pipeW, capH, 5);
+        ctx.fill(); ctx.stroke();
+
+        const bottomY = p.top + p.gap;
+        roundedRect(p.x, bottomY, pipeW, capH, 5);
+        ctx.fill(); ctx.stroke();
+        roundedRect(p.x + 6, bottomY + capH - 2, pipeW - 12, H - bottomY, 5);
+        ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = 'rgba(255,255,255,.23)';
+        ctx.fillRect(p.x + 11, 0, 7, Math.max(0, p.top - 28));
+        ctx.fillRect(p.x + 11, bottomY + 28, 7, H - bottomY);
+      }
+
+      function drawGround() {
+        const y = H - GROUND;
+        ctx.fillStyle = '#f7df7d';
+        ctx.fillRect(0, y, W, GROUND);
+        ctx.fillStyle = '#56b957';
+        ctx.fillRect(0, y, W, 12);
+        ctx.fillStyle = '#a0e15c';
+        const offset = -(frame * 2.65) % 24;
+        for (let x = offset - 24; x < W + 24; x += 24) {
+          ctx.beginPath();
+          ctx.moveTo(x, y + 12);
+          ctx.lineTo(x + 12, y);
+          ctx.lineTo(x + 21, y);
+          ctx.lineTo(x + 9, y + 12);
+          ctx.fill();
+        }
+        ctx.fillStyle = 'rgba(130,93,50,.12)';
+        for (let x = 15; x < W; x += 42) ctx.fillRect(x, y + 30, 19, 4);
+      }
+
+      function drawBird() {
+        const bob = state === 'ready' ? Math.sin(frame * .08) * 7 : 0;
+        ctx.save();
+        ctx.translate(bird.x, bird.y + bob);
+        ctx.rotate(state === 'ready' ? -.08 : bird.rotation);
+
+        ctx.fillStyle = 'rgba(25,56,74,.18)';
+        ctx.beginPath(); ctx.ellipse(2, 19, 24, 6, 0, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = '#ffd84a';
+        ctx.strokeStyle = '#19384a';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.ellipse(0, 0, 22, 17, -.08, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+        const wingY = state === 'playing' && frame % 8 < 4 ? 8 : 1;
+        ctx.fillStyle = '#f4a83a';
+        ctx.beginPath(); ctx.ellipse(-8, wingY, 14, 8, .35, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(10, -8, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#19384a';
+        ctx.beginPath(); ctx.arc(13, -8, 3, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = '#ff7548';
+        ctx.beginPath(); ctx.moveTo(17, 0); ctx.lineTo(32, 4); ctx.lineTo(17, 9); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+        drawBackground();
+        pipes.forEach(drawPipe);
+        drawGround();
+        drawBird();
+      }
+
+      function loop(time) {
+        const delta = Math.min(40, time - lastTime || 16.7);
+        lastTime = time;
+        accumulator += delta;
+        while (accumulator >= 16.7) {
+          update();
+          accumulator -= 16.7;
+        }
+        draw();
+        requestAnimationFrame(loop);
+      }
+
+      let audio;
+      function beep(freq, duration, type, volume) {
+        if (muted) return;
+        try {
+          audio ||= new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audio.createOscillator();
+          const gain = audio.createGain();
+          osc.type = type;
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(volume, audio.currentTime);
+          gain.gain.exponentialRampToValueAtTime(.001, audio.currentTime + duration);
+          osc.connect(gain).connect(audio.destination);
+          osc.start(); osc.stop(audio.currentTime + duration);
+        } catch (_) {}
+      }
+
+      playBtn.addEventListener('click', start);
+      gameEl.addEventListener('pointerdown', e => {
+        if (e.target.closest('button')) return;
+        flap();
+      });
+      window.addEventListener('keydown', e => {
+        if (e.code === 'Space' || e.code === 'ArrowUp') {
+          e.preventDefault();
+          flap();
+        }
+      });
+      soundBtn.addEventListener('click', () => {
+        muted = !muted;
+        soundBtn.textContent = muted ? '×' : '♪';
+        soundBtn.setAttribute('aria-label', muted ? 'Bật âm thanh' : 'Tắt âm thanh');
+      });
+
+      reset();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
