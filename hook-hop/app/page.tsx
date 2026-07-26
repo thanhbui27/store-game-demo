@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
 } from "react";
 
 type Mode = "ready" | "playing" | "over";
@@ -114,6 +115,7 @@ type Engine = {
   pickups: CoinPickup[];
   attachedId: number | null;
   ropeLength: number;
+  ropeAdjust: number;
   holding: boolean;
   cameraX: number;
   startX: number;
@@ -157,6 +159,7 @@ const emptyEngine = (): Engine => ({
   pickups: [],
   attachedId: null,
   ropeLength: 0,
+  ropeAdjust: 0,
   holding: false,
   cameraX: 0,
   startX: 120,
@@ -181,6 +184,13 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
+function ropeBounds(size: ViewSize) {
+  return {
+    min: 64,
+    max: Math.min(455, Math.max(255, size.width * 0.68)),
+  };
+}
+
 function seedWorld(engine: Engine, size: ViewSize) {
   const ceiling = Math.max(82, size.height * 0.12);
   const lower = Math.max(ceiling + 90, size.height - 190);
@@ -189,9 +199,21 @@ function seedWorld(engine: Engine, size: ViewSize) {
     const previousX = engine.nextAnchorX;
     const previousY = engine.lastAnchorY;
     const progress = Math.max(0, (previousX - engine.startX) / 6000);
-    const spacing = randomBetween(205, 290 + Math.min(90, progress * 34));
+    const hookReach = Math.min(430, Math.max(300, size.width * 0.7));
+    const maxSpacing = Math.min(
+      335 + Math.min(45, progress * 22),
+      Math.max(230, size.width * 0.62),
+    );
+    const minSpacing = Math.min(205, maxSpacing - 20);
+    const spacing = randomBetween(minSpacing, maxSpacing);
+    const maxVerticalStep =
+      Math.sqrt(Math.max(100, hookReach * hookReach - spacing * spacing)) * 0.72;
     const nextX = previousX + spacing;
-    const nextY = randomBetween(ceiling, lower);
+    const nextY = clamp(
+      previousY + randomBetween(-maxVerticalStep, maxVerticalStep),
+      ceiling,
+      lower,
+    );
 
     engine.nextAnchorX = nextX;
     engine.lastAnchorY = nextY;
@@ -262,6 +284,7 @@ export default function Home() {
   const audioRef = useRef<AudioContext | null>(null);
   const selectedSkinRef = useRef("nova");
   const coinsRef = useRef(0);
+  const pointerYRef = useRef<number | null>(null);
   const [mode, setMode] = useState<Mode>("ready");
   const [hud, setHud] = useState<Hud>({
     distance: 0,
@@ -384,9 +407,11 @@ export default function Home() {
 
     if (!nearest) return;
     engine.attachedId = nearest.id;
-    engine.ropeLength = Math.max(
-      82,
+    const bounds = ropeBounds(sizeRef.current);
+    engine.ropeLength = clamp(
       Math.hypot(nearest.x - player.x, nearest.y - player.y),
+      bounds.min,
+      bounds.max,
     );
     makeBurst(nearest.x, nearest.y, "#9ff8ff", 6);
     playTone(520, 0.07);
@@ -395,6 +420,8 @@ export default function Home() {
   const releaseHook = useCallback(() => {
     const engine = engineRef.current;
     engine.holding = false;
+    engine.ropeAdjust = 0;
+    pointerYRef.current = null;
     if (engine.mode !== "playing" || engine.attachedId === null) return;
     engine.attachedId = null;
     if (engine.player.vx > 470) {
@@ -440,7 +467,28 @@ export default function Home() {
   const handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
+    pointerYRef.current = event.clientY;
     beginHold();
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const previousY = pointerYRef.current;
+    pointerYRef.current = event.clientY;
+    const engine = engineRef.current;
+    if (
+      previousY === null ||
+      !engine.holding ||
+      engine.attachedId === null
+    ) {
+      return;
+    }
+    event.preventDefault();
+    const bounds = ropeBounds(sizeRef.current);
+    engine.ropeLength = clamp(
+      engine.ropeLength + (event.clientY - previousY) * 0.82,
+      bounds.min,
+      bounds.max,
+    );
   };
 
   const handlePointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -451,11 +499,31 @@ export default function Home() {
     releaseHook();
   };
 
+  const handleWheel = (event: ReactWheelEvent<HTMLCanvasElement>) => {
+    const engine = engineRef.current;
+    if (engine.mode !== "playing" || engine.attachedId === null) return;
+    event.preventDefault();
+    const bounds = ropeBounds(sizeRef.current);
+    engine.ropeLength = clamp(
+      engine.ropeLength + event.deltaY * 0.14,
+      bounds.min,
+      bounds.max,
+    );
+  };
+
   useEffect(() => {
     const keyDown = (event: KeyboardEvent) => {
       if (event.code === "Space") {
         event.preventDefault();
         if (!event.repeat) beginHold();
+      }
+      if (event.key === "ArrowUp" || event.key.toLowerCase() === "w") {
+        event.preventDefault();
+        engineRef.current.ropeAdjust = -1;
+      }
+      if (event.key === "ArrowDown" || event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        engineRef.current.ropeAdjust = 1;
       }
       if (
         event.key === "Enter" &&
@@ -470,6 +538,14 @@ export default function Home() {
       if (event.code === "Space") {
         event.preventDefault();
         releaseHook();
+      }
+      if (
+        event.key === "ArrowUp" ||
+        event.key === "ArrowDown" ||
+        event.key.toLowerCase() === "w" ||
+        event.key.toLowerCase() === "s"
+      ) {
+        engineRef.current.ropeAdjust = 0;
       }
     };
     window.addEventListener("keydown", keyDown, { passive: false });
@@ -559,6 +635,14 @@ export default function Home() {
         (anchor) => anchor.id === engine.attachedId,
       );
       if (attached) {
+        const bounds = ropeBounds(size);
+        if (engine.ropeAdjust !== 0) {
+          engine.ropeLength = clamp(
+            engine.ropeLength + engine.ropeAdjust * 150 * dt,
+            bounds.min,
+            bounds.max,
+          );
+        }
         const dx = player.x - attached.x;
         const dy = player.y - attached.y;
         const length = Math.max(1, Math.hypot(dx, dy));
@@ -831,6 +915,31 @@ export default function Home() {
         ctx.moveTo(screenAnchorX, attached.y);
         ctx.lineTo(screenPlayerX, engine.player.y);
         ctx.stroke();
+
+        const bounds = ropeBounds(size);
+        const ropeRatio =
+          (engine.ropeLength - bounds.min) / (bounds.max - bounds.min);
+        const meterX = clamp(
+          (screenAnchorX + screenPlayerX) / 2 + 14,
+          18,
+          width - 84,
+        );
+        const meterY = clamp(
+          (attached.y + engine.player.y) / 2 - 19,
+          74,
+          height - 58,
+        );
+        ctx.fillStyle = "rgba(13,18,52,.76)";
+        ctx.fillRect(meterX, meterY, 66, 22);
+        ctx.fillStyle = "rgba(140,238,245,.18)";
+        ctx.fillRect(meterX + 6, meterY + 13, 54, 3);
+        ctx.fillStyle = "#8ceef5";
+        ctx.fillRect(meterX + 6, meterY + 13, 54 * ropeRatio, 3);
+        ctx.fillStyle = "#d9faff";
+        ctx.font = '800 8px Arial';
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillText("DÂY  ↑↓", meterX + 7, meterY + 10);
       }
 
       for (const pickup of engine.pickups) {
@@ -1083,11 +1192,13 @@ export default function Home() {
         <canvas
           ref={canvasRef}
           className="game-canvas"
-          aria-label="Giữ chuột, chạm màn hình hoặc giữ phím Space để móc dây. Thả để bay."
+          aria-label="Giữ để móc dây, vuốt lên xuống để chỉnh độ dài dây, thả để bay."
           draggable={false}
           onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
+          onWheel={handleWheel}
           onPointerLeave={(event) => {
             if (event.buttons === 0) releaseHook();
           }}
@@ -1115,7 +1226,7 @@ export default function Home() {
             <span className="hold-icon">●</span>
             <div>
               <strong>GIỮ để móc</strong>
-              <span>THẢ để bay · Né vật cản</span>
+              <span>VUỐT ↑↓ chỉnh dây · THẢ để bay</span>
             </div>
           </div>
         )}
@@ -1170,9 +1281,9 @@ export default function Home() {
                 <span aria-hidden="true">↗</span>
               </button>
               <div className="control-note">
-                <span>CHẠM &amp; GIỮ</span>
+                <span>GIỮ + VUỐT ↑↓</span>
                 <i />
-                <span>HOẶC SPACE</span>
+                <span>SPACE + W/S</span>
               </div>
             </div>
           </div>
