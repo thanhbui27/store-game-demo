@@ -1,0 +1,14 @@
+{
+  "name": "Thằn Lằn Săn Muỗi",
+  "description": "Ngắm chuẩn, phóng lưỡi và nối combo trong khu vườn nhiệt đới.",
+  "category": "Phản xạ",
+  "accent": "#c9f36a",
+  "emoji": "🦎",
+  "icon": "public/og.png",
+  "order": 3,
+  "entry": {
+    "type": "react",
+    "component": "app/page.tsx",
+    "styles": "app/globals.css"
+  }
+}

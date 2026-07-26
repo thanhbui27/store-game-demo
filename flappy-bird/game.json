@@ -1,0 +1,13 @@
+{
+  "name": "Flappy Bird",
+  "description": "Chạm đúng nhịp, luồn qua ống và phá kỷ lục của chính bạn.",
+  "category": "Một chạm",
+  "accent": "#62e7d4",
+  "emoji": "🐥",
+  "icon": "public/icon.png",
+  "order": 1,
+  "entry": {
+    "type": "html",
+    "path": "public/game.html"
+  }
+}
