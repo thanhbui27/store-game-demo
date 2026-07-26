@@ -116,6 +116,9 @@ type Engine = {
   attachedId: number | null;
   ropeLength: number;
   ropeAdjust: number;
+  swingSide: number;
+  swingStreak: number;
+  lastPumpAt: number;
   holding: boolean;
   cameraX: number;
   startX: number;
@@ -160,6 +163,9 @@ const emptyEngine = (): Engine => ({
   attachedId: null,
   ropeLength: 0,
   ropeAdjust: 0,
+  swingSide: 0,
+  swingStreak: 0,
+  lastPumpAt: 0,
   holding: false,
   cameraX: 0,
   startX: 120,
@@ -413,6 +419,9 @@ export default function Home() {
       bounds.min,
       bounds.max,
     );
+    engine.swingSide = player.x >= nearest.x ? 1 : -1;
+    engine.swingStreak = 0;
+    engine.lastPumpAt = 0;
     makeBurst(nearest.x, nearest.y, "#9ff8ff", 6);
     playTone(520, 0.07);
   }, [makeBurst, playTone]);
@@ -424,6 +433,8 @@ export default function Home() {
     pointerYRef.current = null;
     if (engine.mode !== "playing" || engine.attachedId === null) return;
     engine.attachedId = null;
+    engine.swingSide = 0;
+    engine.swingStreak = 0;
     if (engine.player.vx > 470) {
       engine.player.vx += 34;
       engine.flashText = "PHÓNG!";
@@ -653,6 +664,37 @@ export default function Home() {
         const radialVelocity = player.vx * nx + player.vy * ny;
         player.vx -= radialVelocity * nx;
         player.vy -= radialVelocity * ny;
+
+        const currentSide = dx >= 0 ? 1 : -1;
+        const crossedBottom =
+          engine.swingSide !== 0 &&
+          currentSide !== engine.swingSide &&
+          dy > engine.ropeLength * 0.55 &&
+          now - engine.lastPumpAt > 220;
+        if (crossedBottom) {
+          const tangentX = -ny;
+          const tangentY = nx;
+          const tangentVelocity =
+            player.vx * tangentX + player.vy * tangentY;
+          if (Math.abs(tangentVelocity) > 60) {
+            engine.swingStreak = Math.min(8, engine.swingStreak + 1);
+            const gain = 1.045 + engine.swingStreak * 0.006;
+            const addedTangent = tangentVelocity * (gain - 1);
+            player.vx += tangentX * addedTangent;
+            player.vy += tangentY * addedTangent;
+            engine.flashText =
+              engine.swingStreak >= 3
+                ? `ĐÀ ×${engine.swingStreak + 1}`
+                : "TÍCH ĐÀ!";
+            engine.flashLife = 0.46;
+            engine.lastPumpAt = now;
+            makeBurst(player.x, player.y, "#d3ff79", 4);
+            playTone(555 + engine.swingStreak * 34, 0.045);
+          }
+        }
+        if (currentSide !== engine.swingSide) {
+          engine.swingSide = currentSide;
+        }
         player.vx += 17 * dt;
       } else {
         player.vx *= Math.pow(0.997, dt * 60);
@@ -929,17 +971,28 @@ export default function Home() {
           74,
           height - 58,
         );
-        ctx.fillStyle = "rgba(13,18,52,.76)";
-        ctx.fillRect(meterX, meterY, 66, 22);
+        const powerRatio = engine.swingStreak / 8;
+        ctx.fillStyle = "rgba(13,18,52,.8)";
+        ctx.fillRect(meterX, meterY, 66, 34);
         ctx.fillStyle = "rgba(140,238,245,.18)";
         ctx.fillRect(meterX + 6, meterY + 13, 54, 3);
         ctx.fillStyle = "#8ceef5";
         ctx.fillRect(meterX + 6, meterY + 13, 54 * ropeRatio, 3);
+        ctx.fillStyle = "rgba(211,255,121,.16)";
+        ctx.fillRect(meterX + 6, meterY + 26, 54, 3);
+        ctx.fillStyle = "#d3ff79";
+        ctx.fillRect(meterX + 6, meterY + 26, 54 * powerRatio, 3);
         ctx.fillStyle = "#d9faff";
         ctx.font = '800 8px Arial';
         ctx.textAlign = "left";
         ctx.textBaseline = "alphabetic";
         ctx.fillText("DÂY  ↑↓", meterX + 7, meterY + 10);
+        ctx.fillStyle = "#e6ffad";
+        ctx.fillText(
+          `ĐÀ  ×${engine.swingStreak + 1}`,
+          meterX + 7,
+          meterY + 23,
+        );
       }
 
       for (const pickup of engine.pickups) {
@@ -1226,7 +1279,7 @@ export default function Home() {
             <span className="hold-icon">●</span>
             <div>
               <strong>GIỮ để móc</strong>
-              <span>VUỐT ↑↓ chỉnh dây · THẢ để bay</span>
+              <span>LẮC nhiều nhịp để tích đà · VUỐT ↑↓ chỉnh dây</span>
             </div>
           </div>
         )}
@@ -1267,8 +1320,8 @@ export default function Home() {
                 </div>
               ) : (
                 <p>
-                  Giữ để bám móc, thả đúng lúc để lao đi. Thu thập xu vàng,
-                  né mìn đỏ và lưỡi quay trên đường bay.
+                  Giữ qua nhiều nhịp để tích đà và lắc ngày càng xa. Vuốt lên
+                  xuống để chỉnh dây, thu thập xu và né vật cản.
                 </p>
               )}
               <button
@@ -1363,7 +1416,7 @@ export default function Home() {
       </section>
 
       <footer className="footer-note">
-        <span>Giữ để móc · Thả để bay · Né vật cản</span>
+        <span>Giữ để lắc · Lắc nhiều để tích đà · Thả để bay</span>
         <span className="status">
           <i /> LOCAL PLAYTEST
         </span>
