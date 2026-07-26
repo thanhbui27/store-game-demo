@@ -12,11 +12,13 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
 body {
   min-height: 100%;
+  overscroll-behavior: none;
 }
 
 body {
@@ -28,6 +30,9 @@ body {
     radial-gradient(circle at 82% 88%, rgba(240, 116, 112, 0.13), transparent 30rem),
     #090d25;
   overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 button {
@@ -98,6 +103,48 @@ button {
   font-size: 22px;
 }
 
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wallet {
+  min-width: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 222, 115, 0.25);
+  border-radius: 999px;
+  padding: 8px 11px;
+  color: #ffe585;
+  background: rgba(255, 215, 101, 0.07);
+  font-size: 12px;
+}
+
+.wallet strong {
+  color: #fff3ba;
+  font-size: 14px;
+}
+
+.shop-button {
+  border: 1px solid rgba(140, 238, 245, 0.26);
+  border-radius: 999px;
+  padding: 9px 13px;
+  color: var(--cyan);
+  background: rgba(140, 238, 245, 0.07);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  cursor: pointer;
+}
+
+.shop-button:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
 .game-stage {
   position: relative;
   flex: 1;
@@ -110,6 +157,10 @@ button {
     0 25px 80px rgba(1, 3, 16, 0.54),
     inset 0 0 0 6px rgba(255, 255, 255, 0.018);
   isolation: isolate;
+  contain: layout paint;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .game-canvas {
@@ -119,6 +170,9 @@ button {
   min-height: 430px;
   touch-action: none;
   cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .game-canvas:active {
@@ -177,8 +231,7 @@ button {
   border: 1px solid rgba(190, 244, 250, 0.2);
   border-radius: 14px;
   padding: 7px 17px;
-  background: rgba(19, 20, 55, 0.35);
-  backdrop-filter: blur(8px);
+  background: rgba(19, 20, 55, 0.72);
 }
 
 .distance strong {
@@ -208,10 +261,14 @@ button {
   border-radius: 999px;
   padding: 9px 15px 9px 10px;
   color: white;
-  background: rgba(15, 19, 54, 0.58);
-  backdrop-filter: blur(8px);
+  background: rgba(15, 19, 54, 0.82);
   pointer-events: none;
   animation: float 1.2s ease-in-out infinite alternate;
+}
+
+.coin-stat strong,
+.coin-stat small {
+  color: #ffe585;
 }
 
 .hold-icon {
@@ -297,6 +354,45 @@ button {
   line-height: 1.55;
 }
 
+.result-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin: 18px 0 23px;
+}
+
+.result-grid div {
+  border: 1px solid rgba(180, 228, 244, 0.14);
+  border-radius: 13px;
+  padding: 12px 9px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.result-grid span,
+.result-grid strong,
+.result-grid small {
+  display: block;
+}
+
+.result-grid span {
+  color: #7f82a7;
+  font-family: Arial, sans-serif;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.result-grid strong {
+  margin-top: 4px;
+  color: #fff0a8;
+  font-size: 20px;
+}
+
+.result-grid small {
+  color: #8487a9;
+  font-family: Arial, sans-serif;
+  font-size: 8px;
+}
+
 .play-button {
   width: 100%;
   display: flex;
@@ -347,6 +443,208 @@ button {
   height: 3px;
   border-radius: 50%;
   background: #5f6186;
+}
+
+.shop-modal {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(6, 8, 28, 0.84);
+}
+
+.shop-panel {
+  width: min(100%, 720px);
+  max-height: calc(100% - 12px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  border: 1px solid rgba(177, 238, 247, 0.2);
+  border-radius: 24px;
+  padding: clamp(20px, 4vw, 30px);
+  background: linear-gradient(145deg, #1a1c4b, #0f1235);
+  box-shadow: 0 26px 80px rgba(1, 3, 19, 0.55);
+  scrollbar-width: thin;
+  scrollbar-color: #546184 transparent;
+}
+
+.shop-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.shop-header h2 {
+  margin: 6px 0 0;
+  color: #fff3ce;
+  font-size: clamp(25px, 5vw, 35px);
+  letter-spacing: -0.04em;
+}
+
+.close-button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid rgba(183, 232, 244, 0.2);
+  border-radius: 50%;
+  color: #b8bad5;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.shop-balance {
+  width: max-content;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+  border: 1px solid rgba(255, 224, 125, 0.18);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(255, 215, 101, 0.06);
+}
+
+.shop-balance span {
+  color: #8e91af;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+}
+
+.shop-balance strong {
+  color: #ffe585;
+  font-size: 13px;
+}
+
+.skin-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.skin-card {
+  min-width: 0;
+  border: 1px solid rgba(179, 223, 240, 0.12);
+  border-radius: 17px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.skin-card.selected {
+  border-color: rgba(140, 238, 245, 0.58);
+  background: rgba(140, 238, 245, 0.08);
+  box-shadow: inset 0 0 20px rgba(140, 238, 245, 0.05);
+}
+
+.skin-preview {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  margin: 2px auto 10px;
+  border: 4px solid;
+  border-radius: 42% 58% 48% 52%;
+  transform: rotate(7deg);
+  box-shadow: 0 8px 20px rgba(2, 4, 22, 0.28);
+}
+
+.skin-preview::before,
+.skin-preview::after {
+  content: "";
+  position: absolute;
+  top: 19px;
+  width: 7px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1e2149;
+}
+
+.skin-preview::before {
+  left: 17px;
+}
+
+.skin-preview::after {
+  right: 17px;
+}
+
+.skin-preview i {
+  position: absolute;
+  z-index: -1;
+  left: -25px;
+  bottom: 5px;
+  width: 35px;
+  height: 9px;
+  border-radius: 999px;
+  transform: rotate(-15deg);
+}
+
+.skin-preview span {
+  position: absolute;
+  right: 8px;
+  bottom: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.skin-info {
+  min-height: 41px;
+  text-align: center;
+}
+
+.skin-info strong,
+.skin-info span {
+  display: block;
+}
+
+.skin-info strong {
+  overflow: hidden;
+  color: #f5efda;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skin-info span {
+  margin-top: 4px;
+  color: #9295b2;
+  font-family: Arial, sans-serif;
+  font-size: 9px;
+}
+
+.skin-card > button {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid rgba(145, 229, 241, 0.18);
+  border-radius: 10px;
+  padding: 7px 5px;
+  color: #9cf0f4;
+  background: rgba(140, 238, 245, 0.07);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+.skin-card > button:disabled {
+  color: #6f728f;
+  border-color: rgba(139, 142, 174, 0.1);
+  background: rgba(255, 255, 255, 0.025);
+  cursor: default;
+}
+
+.shop-note {
+  margin: 16px 0 0;
+  color: #777b9a;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  text-align: center;
 }
 
 .edge-label {
@@ -421,6 +719,24 @@ button {
     font-size: 23px;
   }
 
+  .top-actions {
+    gap: 5px;
+  }
+
+  .wallet {
+    min-width: 50px;
+    padding: 7px 8px;
+  }
+
+  .shop-button {
+    padding: 8px 9px;
+    font-size: 8px;
+  }
+
+  .top-record {
+    display: none;
+  }
+
   .game-stage,
   .game-canvas {
     min-height: 0;
@@ -449,6 +765,20 @@ button {
 
   .overlay-card {
     padding: 26px 22px;
+  }
+
+  .shop-modal {
+    padding: 10px;
+  }
+
+  .shop-panel {
+    max-height: calc(100% - 4px);
+    border-radius: 19px;
+    padding: 18px 14px;
+  }
+
+  .skin-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
